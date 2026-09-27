@@ -3,7 +3,7 @@
 > 对应 PRD 0.2 / SDD 1.1。记录日期：2026-09-27。基线：上游 `5702d90`（导入提交 `f2334fd`）。
 > 本文只记录实际运行过的结果；未运行的项目明确标为“未验证”。
 
-## 1. 测试环境
+## 1. 首轮基线测试环境（历史）
 
 | 项 | 值 |
 | --- | --- |
@@ -61,6 +61,18 @@ python3 tools/serve.py
 | 冷加载延迟 | 临时 no-store 本地源对每份 WOFF2 延迟 2 秒。字体未就绪时静态菜单可见、`#c` 仍为默认 300px（主模块尚未创建场景）；加载完成后两字体检查为 true、canvas 为 1280×720、无启动错误，菜单恢复随仓行楷。首次字体未到时 CSS 会短暂显示通用 serif；没有永久错误 Canvas 纹理 |
 
 复现与源文件 SHA-256、裁剪命令见 [`docs/font-build.md`](font-build.md)。以上结果由本轮实际执行产生；记录与字体实现一起提交。
+
+### 2.5 后续计划 Task 3 兼容性矩阵（2026-09-27）
+
+| 环境 | 本轮实测 | 未验证 / 阻塞 |
+| --- | --- | --- |
+| Codex 内置 Chromium 154，macOS 27.0 / Apple M4，DPR 1 | 完整规则 47/47；`?only=T99` 0/1（`MISSING:T99`）；`?only=` 0/1（`RUNNER:EMPTY`）；`?only=T03,T16` 7/7 且仅含两组；1280×720、1920×1080 菜单和实际开局 HUD；`?enemies=0` 可开局 | 125% 缩放快捷键未改变浏览器 viewport / DPR，未通过缩小视口替代 |
+| Safari 27，macOS 27.0 / Apple M4 | 完整规则 47/47；`?only=T99` 0/1，明确失败 `MISSING:T99` | 续测时用户接管 Safari，未继续操作；空筛选、目标筛选与两尺寸视觉未验证 |
+| Firefox | 未验证 | 本机未安装 / 未发现可执行文件 |
+| 实体手柄 | 未验证 | 无真实设备；合成输入不算验收 |
+| `file://` | 未验证 | Codex 浏览器安全策略拒绝 `file:` URL；未尝试绕过 |
+
+机器环境读取为 macOS 27.0、Apple M4；测试页报告 Chromium `Chrome/154.0.0.0` 与 Safari `Version/27.0`。细项及后续入口见 [`docs/compatibility.md`](compatibility.md)。此前第 4 节 Chromium 152 交互记录保留为历史证据，不覆盖写为本轮结果。
 
 ## 3. 自动规则测试（SDD 13.2）
 
@@ -147,7 +159,7 @@ python3 tools/serve.py
 
 - 历史限制（Task 2 前）：旧 `brush.woff2` 面对当时字表报告 37 个缺字，系统行楷字体在 macOS 掩盖了问题。Task 2 已将其替换为 Ma Shan Zheng 子集，并用 Noto Serif SC 两字子集补足 `·`、`郃`；两字体联合覆盖当前 143 个字表码点。新增文案仍须同步字表并重新运行检查器。
 - 仅作为备用方案时可用 `python3 -m http.server`，但它不设置 `Cache-Control: no-store`，默认请求队列长度为 5；开发和验收请使用 `python3 tools/serve.py`。
-- Firefox、Safari、125% 缩放、实体手柄：未验证；完整的 1920×1080 功能/resize 验收留待兼容性矩阵（Task 2 已单独完成该分辨率的菜单与 HUD 字体视觉检查）。
+- Firefox、Safari 全分辨率视觉、125% 缩放、实体手柄、`file://`：未验证；见兼容性矩阵（Task 2 单独完成 Chromium 1920×1080 菜单与 HUD 字体视觉检查）。
 
 ## 7. PRD 追溯
 

@@ -42,7 +42,7 @@
 - [x] 项目级 `CLAUDE.md`（启动与测试命令）
 
 ## 新发现
-- 自动规则测试 47/47 通过（tests/index.html；Task 5 为 HeadlessChrome 153 的 46/46；最终复审修复后 Codex 内置 Chrome 154 的 47/47，含 H01–H04 验收用例）。
+- 自动规则测试 47/47 通过（tests/index.html；HeadlessChrome 153 的 46/46 是历史证据；Codex 内置 Chromium 154 与 Safari 27 本轮均实测 47/47，含 H01–H04 验收用例）。
 - 标准库默认服务曾因请求队列较小和未发送缓存头导致模块重置或旧模块复用；改由仓库自带的 `tools/serve.py` 提供更大的队列、`no-store` 响应，并覆盖并发与响应头的单元测试。
-- 用户要求：游戏内繁体改简体（已完成，PRD/SDD 同步）。遗留：HUD 回退字体子集缺 37 个简体字形，待决定是否换字体。
-- 未验证：Firefox、Safari、1920×1080、实体手柄、`file://` 分支。
+- 随仓 HUD 字体现由 Ma Shan Zheng 简体子集 + Noto Serif SC 两字回退组成，当前清单 143/143 覆盖；授权与构建方法见 `docs/font-build.md`。
+- 兼容性矩阵见 `docs/compatibility.md`。未验证/受阻：Firefox、Safari 续测及全分辨率视觉、125% 缩放、实体手柄、`file://` 分支；不得将历史浏览器结果当成本轮新验收。
