@@ -728,6 +728,8 @@ VFX 消费 attack/hit/ko/musou 等事件，产生枪轨迹、冲刺光束、星�
 
 `tests/index.html` 使用与主页面相同的importmap；导入独立测试模块，显示通过/失败详情。`tests/harness.js` 按生产工厂顺序组装 CameraSim、Hero、Crowd、Combat、Musou，但不创建World、renderer、HUD、VFX或Audio，避免GPU与音频依赖。
 
+测试运行器必须先加载所有测试模块，再应用`?only=`筛选。模块导入失败始终作为失败显示，不得被筛选条件隐藏；每个请求的测试ID都必须至少命中一个用例，未知ID应生成失败项。空筛选或零用例结果不得报告成功，避免出现`0/0 passed`的假绿。
+
 测试页位于`tests/`，因此importmap URL需相对该目录调整为`three: ../vendor/three/three.module.js`和`three/addons/: ../vendor/three/addons/`。测试模块通过`../src/`导入生产模块；模拟工厂负责将frame/hitstop/freeze设为0，设置模拟seed，reset各模块并调用spawnArmy(grunts)。`spawnArmy()`和`spawnRing()`都会开启`wavesOn`，而`clear()`不会关闭它；因此工厂必须在所有初始生成与靶子布置完成后显式应用增援开关，并把`waveT`重置为0。默认规则测试关闭增援，只有增援与槽位生命周期用例显式开启。需要独立靶子的用例在初始化后调用crowd.clear()，再用spawnRing和显式数组赋值安排目标，最后重新关闭增援并清零`waveT`，避免较长用例混入自动敌人。
 
 ```js

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="zh-Hans">
 <head>
   <meta charset="utf-8">
   <title>Voxel Musou — rule tests</title>
@@ -17,32 +17,6 @@
   <h1>Voxel Musou — rule tests <span id="summary">running…</span></h1>
   <p id="env"></p>
   <table><thead><tr><th>ID</th><th>Case</th><th>Result</th><th>Detail</th></tr></thead><tbody id="rows"></tbody></table>
-  <script type="module">
-    const MODULES = ['./cases/input.js', './cases/hero.js', './cases/combat.js', './cases/crowd.js', './cases/musou.js', './cases/loop.js'];
-    const rows = document.getElementById('rows'), results = [];
-    document.getElementById('env').textContent = navigator.userAgent;
-    const only = new URLSearchParams(location.search).get('only');
-    for (const path of MODULES) {
-      let cases;
-      try { cases = (await import(path)).default; }
-      catch (e) { cases = [{ id: path, name: 'module load', fn: () => { throw e; } }]; }
-      for (const t of cases) {
-        if (only && !only.split(',').includes(t.id)) continue;
-        const r = { id: t.id, name: t.name, ok: true, detail: '' };
-        const t0 = performance.now();
-        try { const d = await t.fn(); if (d) r.detail = String(d); }
-        catch (e) { r.ok = false; r.detail = (e && e.stack) || String(e); }
-        r.ms = Math.round(performance.now() - t0);
-        results.push(r);
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${r.id}</td><td>${r.name}</td><td class="${r.ok ? 'pass' : 'fail'}">${r.ok ? 'PASS' : 'FAIL'} (${r.ms} ms)</td><td><pre></pre></td>`;
-        tr.querySelector('pre').textContent = r.detail;
-        rows.appendChild(tr);
-      }
-    }
-    const failed = results.filter((r) => !r.ok).length;
-    document.getElementById('summary').textContent = `${results.length - failed}/${results.length} passed`;
-    window.__testResults = { passed: results.length - failed, failed, results };
-  </script>
+  <script type="module" src="./index.js"></script>
 </body>
 </html>
