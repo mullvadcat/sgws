@@ -34,10 +34,10 @@ No build step: plain ES modules, Three.js r186 vendored in `vendor/three/`, dete
 
 ## Run
 
-ES modules don't load from `file://`, so serve the folder with any static server:
+ES modules don't load from `file://`, so serve the folder with the included no-cache local server:
 
 ```sh
-python3 -m http.server 8000
+python3 tools/serve.py
 ```
 
 Then open http://localhost:8000 . Requires a WebGL2 browser; a desktop GPU is recommended. Sound starts on the first key press or click.

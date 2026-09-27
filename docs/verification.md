@@ -10,18 +10,18 @@
 | 设备 / GPU | Apple M4（`ANGLE Metal Renderer: Apple M4`） |
 | 浏览器 | Claude 桌面版内置浏览器面板，Chromium 内核 `Chrome/152.0.7977.130` |
 | 视口 | CSS 1280×720，DPR 1，renderer pixelRatio 1（开启后处理） |
-| 服务 | 本地静态 HTTP（`Cache-Control: no-store`，见第 6 节） |
+| 服务 | 仓库内 `tools/serve.py`（ThreadingHTTPServer、请求队列64、`Cache-Control: no-store`） |
 | 其他浏览器 | Firefox、Safari：**未验证** |
 
 ## 2. 如何复现
 
 ```bash
-python3 -m http.server 8000
+python3 tools/serve.py
 ```
 
 - 游戏：`http://127.0.0.1:8000/`；验证用只读句柄：`http://127.0.0.1:8000/?debug`（`window.__voxelMusou = { game, loop, enemies, scene, renderer }`，游戏逻辑不读取它）。
 - 规则测试：`http://127.0.0.1:8000/tests/index.html`；只跑部分用例：`?only=T03,T16`。结果同时写入 `window.__testResults`。
-- 改代码后若结果与预期不符，先强制刷新：`python3 -m http.server` 不发送缓存头，浏览器可能复用旧模块。
+- 开发服务器自测：`python3 tools/test_serve.py`，覆盖 no-store 响应头及 32 个并发请求。
 
 ## 3. 自动规则测试（SDD 13.2）
 
@@ -103,7 +103,7 @@ python3 -m http.server 8000
 ## 6. 已知问题与限制
 
 - HUD 回退字体 `src/ui/brush.woff2` 是按繁体字裁剪的子集，改为简体后 77 个用字中缺 37 个（如“赵、云、无、双、龙”）。macOS 的“行楷/楷体”排在字体栈前面，不受影响；Windows/Linux 缺字会回退到 serif。需要换用覆盖简体的 OFL 字体并重新裁剪。
-- `python3 -m http.server` 不发送 `Cache-Control`，开发中浏览器可能按启发式缓存复用旧模块；默认监听队列为 5，大量并行模块请求时偶发连接重置（此时会显示加载失败提示）。
+- 仅作为备用方案时可用 `python3 -m http.server`，但它不设置 `Cache-Control: no-store`，默认请求队列长度为 5；开发和验收请使用 `python3 tools/serve.py`。
 - Firefox、Safari、1920×1080、实体手柄：未验证。
 
 ## 7. PRD 追溯

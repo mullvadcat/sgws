@@ -34,7 +34,7 @@
 
 - 运行时：浏览器原生 JavaScript ES Modules、DOM、Canvas 2D、WebAudio、WebGL2。
 - 图形：本地提供的 Three.js r186 及所需 addons，通过 `index.html` 的 importmap 解析。
-- 托管：任意静态 HTTP 服务；可用 `python3 -m http.server 8000` 启动。
+- 托管：仓库自带标准库开发服务器，使用 `python3 tools/serve.py` 启动；多线程处理请求并为响应设置`Cache-Control: no-store`。其他静态HTTP服务也可托管生产文件。
 - 测试：交付补充采用浏览器内 ES Module 测试页，不为生产运行引入打包器或 npm 依赖。
 - 网络与持久化：游戏启动后的规则不依赖后台 API；本轮不提供账号、联网对战、存档或数据库。
 

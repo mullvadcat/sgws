@@ -42,7 +42,7 @@
 - [x] 项目级 `CLAUDE.md`（启动与测试命令）
 
 ## 新发现
-- 自动规则测试 41/41 通过（tests/index.html，Chromium 预览）。
-- `python3 -m http.server` 不发 Cache-Control：浏览器按启发式缓存复用旧模块，改代码后可能跑到旧版本（T14 修复后曾因此仍失败）。开发时需强制刷新或用 no-store 服务；写入项目 CLAUDE.md。
+- 自动规则测试 45/45 通过（tests/index.html，Chromium 预览；含 H01/H02 验收用例）。
+- 标准库默认服务曾因请求队列较小和未发送缓存头导致模块重置或旧模块复用；改由仓库自带的 `tools/serve.py` 提供更大的队列、`no-store` 响应，并覆盖并发与响应头的单元测试。
 - 用户要求：游戏内繁体改简体（已完成，PRD/SDD 同步）。遗留：HUD 回退字体子集缺 37 个简体字形，待决定是否换字体。
 - 未验证：Firefox、Safari、1920×1080、实体手柄、`file://` 分支。
