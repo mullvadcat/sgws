@@ -14,43 +14,53 @@ const MOVEKEYS = {
 // Gamepad (standard mapping): A/× jump, X/□ attack, Y/△ charge, B/○ musou, R1 dodge.
 const PADMAP = { 0: 'jump', 2: 'attack', 3: 'charge', 1: 'musou', 5: 'dodge', 7: 'dodge' };
 
-export function createInput() {
+const defaultPads = () => (navigator.getGamepads ? navigator.getGamepads() : []);
+
+/** target: where the listeners go (window in the game; a plain EventTarget in tests). getGamepads: pad source (tests
+ *  pass a stub). dispose() removes every listener. */
+export function createInput({ target = window, getGamepads = defaultPads } = {}) {
   const dev = { held: {}, latch: {}, keys: new Set(), orbitPx: 0, pad: {} };
   const out = { mx: 0, my: 0, orbit: 0, pressed: {}, held: {} };
+  const subs = [];
+  const listen = (name, fn) => { target.addEventListener(name, fn); subs.push([name, fn]); };
 
-  addEventListener('keydown', (e) => {
+  listen('keydown', (e) => {
     if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
     dev.keys.add(e.code);
     const a = KEYMAP[e.code];
     if (a && !e.repeat) { dev.held[a] = true; dev.latch[a] = true; }
   });
-  addEventListener('keyup', (e) => {
+  listen('keyup', (e) => {
     dev.keys.delete(e.code);
     const a = KEYMAP[e.code];
     if (a) dev.held[a] = false;
   });
-  addEventListener('blur', () => { dev.keys.clear(); for (const a of ACTIONS) dev.held[a] = false; });
   let drag = false, lastX = 0;
-  addEventListener('contextmenu', (e) => e.preventDefault());
-  addEventListener('pointerdown', (e) => {
+  // focus lost: drop everything held, including a camera drag whose button may be released outside the window
+  // (otherwise the view keeps turning with a bare pointer move on return)
+  listen('blur', () => { dev.keys.clear(); for (const a of ACTIONS) dev.held[a] = false; drag = false; dev.orbitPx = 0; });
+  listen('contextmenu', (e) => e.preventDefault());
+  listen('pointerdown', (e) => {
     if (e.target.closest && e.target.closest('button,a,input')) return;
     const a = e.button === 0 ? 'attack' : e.button === 2 ? 'charge' : null;
     if (a) { dev.held[a] = true; dev.latch[a] = true; }
     drag = true; lastX = e.clientX;
   });
-  addEventListener('pointerup', (e) => {
+  listen('pointerup', (e) => {
     const a = e.button === 0 ? 'attack' : e.button === 2 ? 'charge' : null;
     if (a) dev.held[a] = false;
     drag = false;
   });
-  addEventListener('pointermove', (e) => {
+  listen('pointercancel', () => { drag = false; });
+  listen('pointermove', (e) => {
+    if (drag && e.buttons === 0) drag = false;           // the release happened where we could not see it
     if (drag) { dev.orbitPx += e.clientX - lastX; lastX = e.clientX; }
   });
 
   function pollPad() {
-    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const pads = getGamepads();
     const p = pads && pads[0];
-    if (!p) return null;
+    if (!p) { dev.pad = {}; return null; }                // disconnected: forget the old device's button states
     for (const [btn, a] of Object.entries(PADMAP)) {
       const down = !!(p.buttons[btn] && p.buttons[btn].pressed);
       if (down && !dev.pad[btn]) dev.latch[a] = true;
@@ -82,5 +92,6 @@ export function createInput() {
     return out;
   }
 
-  return { sample };
+  const dispose = () => { for (const [name, fn] of subs) target.removeEventListener(name, fn); subs.length = 0; };
+  return { sample, dispose };
 }

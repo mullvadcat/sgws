@@ -542,6 +542,11 @@ export function createCrowd(game, grunts = 300) {
     if (c.engaged >= CROWD.engaged || holdNear) return;                  // a block waits closer: the director uses it
     const off = freeSlots(false);
     if (off.length < CROWD.wave[0]) return;
+    // no free squad slot: skip this attempt entirely (no soldiers, no officer, no event) and keep the timer so the
+    // column comes as soon as a block folds into the ring
+    let freeSq = c.sq.n < MAXSQ;
+    for (let k = 0; !freeSq && k < c.sq.n; k++) if (!c.sq.st[k]) freeSq = true;
+    if (!freeSq) return;
     c.waveT = 0;
     const n = Math.min(off.length, rng.int(CROWD.wave[0], CROWD.wave[1]));
     const a = game.cam.yaw + rng.range(-1.1, 1.1), d = rng.range(CROWD.waveDist[0], CROWD.waveDist[1]);

@@ -16,9 +16,11 @@ import { createCamSim, createCameraRig } from './camera/camera.js';
 import { createVfx } from './vfx/vfx.js';
 import { createHud } from './ui/hud.js';
 import { createAudio } from './audio/audio.js';
+import { createFixedLoop } from './core/loop.js';
+import { parseEnemyCount } from './core/config.js';
 
 const params = new URLSearchParams(location.search);
-const ENEMIES = Math.max(0, Math.min(2000, params.get('enemies') ? Number(params.get('enemies')) | 0 : 300));
+const ENEMIES = parseEnemyCount(params.get('enemies'));
 
 const canvas = document.getElementById('c');
 let vw = innerWidth, vh = innerHeight;
@@ -90,27 +92,22 @@ addEventListener('resize', () => {
 
 // ---- start / pause menu (index.html #menu): the sim waits while it is open
 const menu = document.getElementById('menu'), go = document.getElementById('go'), hudEl = document.getElementById('hud');
-let paused;
-const setPaused = (v) => { paused = v; menu.hidden = !v; hudEl.hidden = v; input.sample(); };   // sample(): drop keys pressed on the menu
+const loop = createFixedLoop({ step, render, sampleInput: input.sample });
+const setPaused = (v) => { loop.setPaused(v); menu.hidden = !v; hudEl.hidden = v; input.sample(); };   // sample(): drop keys pressed on the menu
 go.addEventListener('click', () => setPaused(false));
 addEventListener('keydown', (e) => {
-  if (e.code === 'Escape') setPaused(!paused);
-  else if (paused && (e.code === 'Enter' || e.code === 'NumpadEnter')) setPaused(false);
+  if (e.code === 'Escape') setPaused(!loop.paused);
+  else if (loop.paused && (e.code === 'Enter' || e.code === 'NumpadEnter')) setPaused(false);
 });
 addEventListener('blur', () => setPaused(true));
 
 // ---- loop
-let acc = 0, last = performance.now();
+let last = performance.now();
 const frame = (now) => {
   requestAnimationFrame(frame);
-  // clamp at 0 too: the first rAF timestamp can precede the performance.now() taken at module init
-  acc += Math.min(0.1, Math.max(0, (now - last) / 1000));
+  // the loop clamps at 0 too: the first rAF timestamp can precede the performance.now() taken at module init
+  loop.tick((now - last) / 1000);
   last = now;
-  if (paused) { acc = 0; input.sample(); return; }
-  let n = 0;
-  while (acc >= 1 / 60 && n < 4) { step(); acc -= 1 / 60; n++; }
-  if (n === 4) acc = 0;
-  render();
 };
 
 start();
