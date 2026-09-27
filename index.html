@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="zh-Hans">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="data:,">
-<title>趙雲 — Voxel Musou</title>
+<title>赵云 — Voxel Musou</title>
 <script type="importmap">
 { "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
 </script>
@@ -102,7 +102,7 @@
       0 0 1.2rem rgba(90,200,255,.9); }
   #hud .h-chain small { color: #bfeeff; margin: -.3rem 0 0 .3rem; }
 
-  /* KO milestone: centre, heavy gold brush number (digits ~13 % H like DW8) + red 擊破 seal stamp */
+  /* KO milestone: centre, heavy gold brush number (digits ~13 % H like DW8) + red 击破 seal stamp */
   #hud .h-mile { left: 0; right: 0; top: 33%; text-align: center; opacity: 0; }
   #hud .h-mile b { display: inline-block; font: 700 15rem/1 var(--brush); --rw: 1rem; --ew: .3rem; --hi: #fffdf0; --mid: #ffdc6a;
     vertical-align: middle; }
@@ -189,27 +189,48 @@
   #menu button:hover { filter: brightness(1.1); }
   #menu button small { font: 600 1.4rem/1 "Avenir Next", "Helvetica Neue", sans-serif; letter-spacing: .3em; margin-left: 1rem; }
   #menu .hint { margin: 1.4rem 0 0 .4rem; font: 500 1.35rem/1.5 "Avenir Next", "Helvetica Neue", sans-serif; letter-spacing: .08em; opacity: .7; }
+  #boot-error { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; justify-content: center; align-items: center;
+    gap: 1.2rem; padding: 4rem; text-align: center; background: #120c09; color: #f7f1e8; }
+  #boot-error[hidden] { display: none; }
+  #boot-error .zh { font: 700 2.6rem/1.4 "Kaiti SC", "STKaiti", "KaiTi", serif; color: #f2c14e; }
+  #boot-error .en { font: 500 1.6rem/1.5 "Avenir Next", "Helvetica Neue", sans-serif; opacity: .8; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <div id="hud"></div>
 <div id="menu">
-  <div class="t">趙雲<i>常山</i></div>
+  <div class="t">赵云<i>常山</i></div>
   <div class="en">VOXEL MUSOU</div>
-  <div class="sub">一杆長槍，獨闖魏軍三百</div>
+  <div class="sub">一杆长枪，独闯魏军三百</div>
   <table>
-    <tr><td>移動<small>MOVE</small></td><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows</td></tr>
-    <tr><td>攻擊<small>ATTACK</small></td><td><kbd>J</kbd> / left click — tap for a 6-hit combo</td></tr>
+    <tr><td>移动<small>MOVE</small></td><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows</td></tr>
+    <tr><td>攻击<small>ATTACK</small></td><td><kbd>J</kbd> / left click — tap for a 6-hit combo</td></tr>
     <tr><td>蓄力<small>CHARGE</small></td><td><kbd>K</kbd> / right click — mid-combo for charge attacks</td></tr>
-    <tr><td>跳躍<small>JUMP</small></td><td><kbd>Space</kbd></td></tr>
-    <tr><td>閃避<small>DODGE</small></td><td><kbd>L</kbd> / <kbd>Shift</kbd></td></tr>
-    <tr><td>無雙<small>MUSOU</small></td><td><kbd>I</kbd> — when the gold gauge is full</td></tr>
-    <tr><td>視角<small>CAMERA</small></td><td><kbd>Q</kbd><kbd>E</kbd> / drag the mouse</td></tr>
+    <tr><td>跳跃<small>JUMP</small></td><td><kbd>Space</kbd></td></tr>
+    <tr><td>闪避<small>DODGE</small></td><td><kbd>L</kbd> / <kbd>Shift</kbd></td></tr>
+    <tr><td>无双<small>MUSOU</small></td><td><kbd>I</kbd> — when the gold gauge is full</td></tr>
+    <tr><td>视角<small>CAMERA</small></td><td><kbd>Q</kbd><kbd>E</kbd> / drag the mouse</td></tr>
   </table>
-  <button id="go">出陣<small>START</small></button>
+  <button id="go">出阵<small>START</small></button>
   <div class="hint">Enter to start · Esc to pause · gamepad supported · best with keyboard, mouse and sound on</div>
 </div>
-<script type="module" src="./src/main.js"></script>
+<div id="boot-error" role="alert" hidden><p class="zh"></p><p class="en"></p></div>
+<script>
+  // Boot failures that the game module cannot report itself (file://, a script that failed to load, no import maps).
+  window.__vmFail = function (zh, en) {
+    var box = document.getElementById('boot-error');
+    box.querySelector('.zh').textContent = zh; box.querySelector('.en').textContent = en; box.hidden = false;
+    document.getElementById('menu').hidden = true; document.getElementById('hud').hidden = true;
+  };
+  window.__vmLoadFail = function () {
+    if (location.protocol === 'file:') return window.__vmFail('请通过 HTTP 服务器打开本游戏，不能直接打开文件。',
+      'Serve this folder over HTTP (e.g. python3 -m http.server 8000) instead of opening the file directly.');
+    window.__vmFail('游戏脚本加载失败，请确认通过 HTTP 访问并刷新页面。',
+      'The game scripts failed to load. Serve the folder over HTTP and reload; the browser console names the missing file.');
+  };
+  if (location.protocol === 'file:') window.__vmLoadFail();
+</script>
+<script type="module" src="./src/main.js" onerror="__vmLoadFail()"></script>
 </body>
 </html>

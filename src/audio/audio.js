@@ -56,8 +56,13 @@ export function createAudio(game) {
   const B = {};                               // filled progressively by the offline bake (combat sounds first)
   buildBank(B).then(startBed, (e) => console.warn('audio bank', e));
 
+  let broken = false;                          // audio failed to start: the game carries on silently
   function start() {
-    if (ctx) { if (ctx.state !== 'running') ctx.resume(); return; }
+    if (broken) return;
+    try { build(); } catch (e) { broken = true; ctx = null; console.warn('audio unavailable, continuing without sound', e); }
+  }
+  function build() {
+    if (ctx) { if (ctx.state !== 'running') ctx.resume().catch((e) => console.warn('audio resume failed', e)); return; }
     ctx = new AudioContext({ latencyHint: 'interactive' });
     const comp = ctx.createDynamicsCompressor();
     // 25 ms attack: the first frame of every hit passes the compressor untouched (6 ms flattened the impacts); a gentle

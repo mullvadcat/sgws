@@ -7,7 +7,7 @@
 //    gone within 0.5 s, so the payoff plays at the normal golden-hour contrast.
 //  · floating light motes (streak during the chase), rising energy ribbons, electric aura in the close-up
 //  · the voxel azure dragon (path shared with the sim hits: dragonAt), shedding light-voxel shards, dissolving at the end
-//  · finisher lightning ring band (DW9 ring wave), calligraphy cut-in (無雙 + seal) over the close-up (DOM, frame-driven)
+//  · finisher lightning ring band (DW9 ring wave), calligraphy cut-in (无双 + seal) over the close-up (DOM, frame-driven)
 import * as THREE from 'three';
 import { on } from '../core/events.js';
 import { vrng, hash01 } from '../core/rng.js';
@@ -54,7 +54,7 @@ function instanced(scene, geo, mat, n) {
 const NS = 46, SP = 0.3, NECK = 1.1, GIRTH = 1.4;        // body segments, spacing (m), head→first segment gap, body scale
 // (r2: girth ×1.4 and a bigger head — from the flank payoff camera the dragon runs 8–14 m away and read as a thin ribbon)
 const COL = {
-  // azure 青龍: saturated enough that ACES keeps the hue; only fins/belly/whiskers/eyes run hot enough to bloom
+  // azure 青龙: saturated enough that ACES keeps the hue; only fins/belly/whiskers/eyes run hot enough to bloom
   // (r2: fins/belly/white a notch lower — the post's cool-biased bloom turned the finisher coil into a white column)
   body: [0.03, 0.2, 0.75], scale: [0.06, 0.38, 1.05], belly: [0.4, 0.72, 0.92], fin: [0.42, 0.95, 1.3], eye: [3.0, 2.2, 0.5],
   horn: [1.4, 1.15, 0.6], white: [1.0, 1.12, 1.2], whisker: [0.6, 1.15, 1.55],
@@ -169,7 +169,7 @@ export function createMusouView(scene, game, camera) {
   document.head.appendChild(css);
   const cut = document.createElement('div');
   cut.className = 'mu-cut';
-  cut.innerHTML = '<div class="sub">常山 趙子龍</div><div class="big">無雙</div><div class="seal">龍膽</div>';
+  cut.innerHTML = '<div class="sub">常山 赵子龙</div><div class="big">无双</div><div class="seal">龙胆</div>';
   document.body.appendChild(cut);
   const [cutSub, cutBig, cutSeal] = cut.children;
   const setStyle = (el, k, v) => { if (el.style[k] !== v) el.style[k] = v; };

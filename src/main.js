@@ -23,9 +23,16 @@ const params = new URLSearchParams(location.search);
 const ENEMIES = parseEnemyCount(params.get('enemies'));
 
 const canvas = document.getElementById('c');
-let vw = innerWidth, vh = innerHeight;
+let vw = Math.max(1, innerWidth), vh = Math.max(1, innerHeight);
 
-const post = createPost({ canvas, width: vw, height: vh });
+let post;
+try {
+  post = createPost({ canvas, width: vw, height: vh });
+} catch (e) {
+  window.__vmFail('此浏览器或设备无法初始化 WebGL2 游戏画面。',
+    'This browser or device could not start WebGL2. Try a current desktop Chrome, Edge, Firefox or Safari with hardware acceleration on.');
+  throw e;
+}
 const scene = new THREE.Scene();
 const world = createWorld(scene);
 
@@ -46,7 +53,7 @@ const vfx = createVfx(scene, game, world);
 const musouView = createMusouView(scene, game, camRig.camera);   // musou part: grade, dragon, cut-in (render-only)
 // hud part: camera passed so officer name/HP tags can be projected over their heads (read-only)
 const hud = createHud(document.getElementById('hud'), game, { camera: camRig.camera });
-createAudio(game);
+try { createAudio(game); } catch (e) { console.warn('audio unavailable, continuing without sound', e); }
 
 function step() {
   const inp = input.sample();
@@ -84,6 +91,7 @@ function start() {
 }
 
 addEventListener('resize', () => {
+  if (!innerWidth || !innerHeight) return;              // minimised / zero-size: keep the last size until it comes back
   vw = innerWidth; vh = innerHeight;
   post.setSize(vw, vh);
   camRig.resize(vw, vh);
@@ -93,7 +101,18 @@ addEventListener('resize', () => {
 // ---- start / pause menu (index.html #menu): the sim waits while it is open
 const menu = document.getElementById('menu'), go = document.getElementById('go'), hudEl = document.getElementById('hud');
 const loop = createFixedLoop({ step, render, sampleInput: input.sample });
-const setPaused = (v) => { loop.setPaused(v); menu.hidden = !v; hudEl.hidden = v; input.sample(); };   // sample(): drop keys pressed on the menu
+let contextLost = false;
+const setPaused = (v) => {
+  if (contextLost && !v) return;                       // no GPU scene to resume into
+  loop.setPaused(v); menu.hidden = !v; hudEl.hidden = v; input.sample();   // sample(): drop keys pressed on the menu
+};
+// ?debug: read-only handle for manual verification (docs/verification.md); nothing in the game reads it
+if (params.has('debug')) window.__voxelMusou = { game, loop, enemies: ENEMIES, scene, renderer: post.renderer };
+canvas.addEventListener('webglcontextlost', (e) => {
+  e.preventDefault();
+  setPaused(true); contextLost = true;
+  window.__vmFail('图形设备已中断（WebGL context lost），请刷新页面。', 'The graphics context was lost. Reload the page to continue.');
+});
 go.addEventListener('click', () => setPaused(false));
 addEventListener('keydown', (e) => {
   if (e.code === 'Escape') setPaused(!loop.paused);

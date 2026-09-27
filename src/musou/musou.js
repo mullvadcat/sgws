@@ -1,4 +1,4 @@
-// Musou (sim): Zhao Yun's 真・無雙 modelled on the DW8XL ground Musou (bench/notes/musou.md), plus a voxel azure dragon.
+// Musou (sim): Zhao Yun's 真・无双 modelled on the DW8XL ground Musou (bench/notes/musou.md), plus a voxel azure dragon.
 // Timeline (musou frames t; t = 1 on the first step after the press; hitstop pauses it):
 //   0  activation — world freezes, an aura shock pushes the nearest soldiers back (clears the stage), spear raised
 //   30 close-up cut-in (≈1 s)          88 pull-back to a charge stance          100 chase run (steerable)
