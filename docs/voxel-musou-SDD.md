@@ -1,7 +1,7 @@
 # Voxel Musou — 赵云：软件详细设计（SDD）
 
-> 版本：1.0 ｜日期：2026-09-27 ｜目标读者：Luna 开发代理与代码评审者<br>
-> 需求依据：[voxel-musou-PRD.md](./voxel-musou-PRD.md)，版本 0.1<br>
+> 版本：1.1 ｜日期：2026-09-27（按固定提交源码复核修订）｜目标读者：Luna 开发代理与代码评审者<br>
+> 需求依据：[voxel-musou-PRD.md](./voxel-musou-PRD.md)，版本 0.2<br>
 > 源码基线：[mike007jd/voxel-musou](https://github.com/mike007jd/voxel-musou/tree/5702d9078d664974527ae3defe5aef49a5c4ed46)，提交 `5702d9078d664974527ae3defe5aef49a5c4ed46`
 
 ## 0. Luna 使用说明
@@ -94,8 +94,9 @@ flowchart TD
 
 ```text
 index.html                 canvas、importmap、HUD/菜单 DOM 与样式
-src/main.js                初始化、固定步进、渲染调度、暂停、resize
-src/core/input.js          键鼠/手柄 -> 每步输入快照
+src/main.js                初始化、渲染调度接线、暂停、resize
+src/core/loop.js           [交付补充] 从main抽出的固定步进调度（纯逻辑，无DOM）
+src/core/input.js          键鼠/手柄 -> 每步输入快照；[交付补充] dispose()与可注入的手柄来源
 src/core/events.js         同步事件总线
 src/core/rng.js            模拟 RNG、视觉 RNG、稳定 hash
 src/core/voxel.js          程序化几何生成与合并
@@ -127,7 +128,7 @@ tests/cases/*.js            [交付补充] 核心规则测试
 docs/verification.md        [交付补充] 人工验收与性能记录
 ```
 
-保留上游文件边界即可开展首轮实现；没有具体测试或功能需要时，不进行全仓重构。
+保留上游文件边界即可开展首轮实现；没有具体测试或功能需要时，不进行全仓重构。例外是 `src/core/loop.js`：T16 需要在无DOM环境复用生产调度，因此把 main.js 中内联的 rAF 累加/补步/暂停逻辑抽成该模块，main.js 只负责接线，行为须与基线逐步一致。
 
 ## 3. 初始化、时钟与生命周期
 
@@ -170,6 +171,18 @@ function step() {
 
 当设备长时间低帧率时，最多补跑 4 步的策略可能令游戏时间落后于墙钟时间；这与“固定 60 Hz 规则”并不冲突。确定性测试比较相同输入下的相同模拟步数，不比较两次墙钟运行的结果。
 
+`src/core/loop.js` 契约（交付补充）：
+
+```js
+createFixedLoop({ step, render, sampleInput, maxSteps = 4, dt = 1 / 60, maxElapsed = 0.1 })
+  -> { tick(elapsedSeconds), setPaused(bool), paused, stats }
+// tick：夹紧 elapsed，暂停时清零累计并调用 sampleInput() 丢弃边沿；
+// 否则最多执行 maxSteps 次 step()，达到上限清空积压，最后调用一次 render()。
+// stats 记录本次补步数与是否丢弃积压，供 T16 断言。
+```
+
+main.js 用 `performance.now()` 差值调用 `tick`；测试用 `driveRenderSchedule` 传入人工时间序列。
+
 调度确定性还必须覆盖 rAF 层：用稳定与不规则的渲染时间序列驱动同一份按模拟步编号的输入脚本，在达到相同模拟步数时比较规则快照。另分别验证单次 rAF 最多补跑4步、超过上限后清空积压、一次输入边沿在补帧中只消费一次，以及暂停清空累计时间并消费待处理边沿、恢复后不重放。
 
 ### 3.3 三种暂停/冻结
@@ -190,7 +203,7 @@ function step() {
 - 失焦清除键盘/鼠标按住状态及拖动状态，避免恢复后持续移动或转镜头。
 - 手柄仍持续按住攻击时，恢复后须等松开再按才产生新的攻击边沿。
 
-最后两项是输入恢复的交付检查点；若基线在目标浏览器未满足，应在输入模块内修正并加入回归用例。
+最后两项是输入恢复的交付检查点。**已确认的基线缺陷**：固定提交 `input.js` 的 blur 只清除 `keys` 与 `held`，未清除 `drag`，也不处理窗口外松开鼠标；拖动镜头时切出窗口，返回后不按键移动指针仍会旋转镜头。须在输入模块内修正（blur 与 `pointercancel` 清除 `drag` 和 `orbitPx`，并用 `buttons===0` 的 pointermove 兜底结束拖动），并加入 T01 回归用例。手柄按住跨越暂停的情况在基线已满足：暂停期间每帧 `sample()` 会轮询手柄并消费边沿。
 
 ## 4. 数据模型与公共接口
 
@@ -237,10 +250,10 @@ InputSnapshot = {
 
 | 工厂/函数 | 参数 | 返回与契约 |
 | --- | --- | --- |
-| `createInput()` | 无 | `{sample()}`；每步一次输入采样 |
+| `createInput()` | 无 | `{sample()}`；每步一次输入采样。基线在 window 上注册全局监听且不可注销；交付补充 `createInput({ target = window, getGamepads } = {})` 返回 `{sample, dispose}`，缺省参数时行为与基线一致 |
 | `createCamSim()` | 无 | `reset(yaw),step(game,inp),yaw,ctrl` |
 | `createHero(game)` | 模拟聚合对象 | 主角字段；`reset(options),step(inp),hurt(dmg,fromX,fromZ,officer):boolean` |
-| `createCrowd(game,grunts)` | 普通兵容量 | 数组；`reset(),spawnArmy(count),spawnRing(count,radius),clear(),nearest(x,z,maxR,yaw,cone),counts(),releaseToken(i),step()` |
+| `createCrowd(game,grunts)` | 普通兵容量 | SoA 字段数组集合对象（含 `N/grunts/sq`）；`reset(),spawnArmy(count),spawnRing(count,radius),clear(),nearest(x,z,maxR,yaw,cone),counts(),releaseToken(i),step()` |
 | `createCombat(game)` | 已有主角与兵群 | `reset(),step(),strike(hit,ox,oz,yaw,key,rehit,moveId):number,enemyStrike(i)` |
 | `createMusou(game)` | 模拟聚合对象 | `reset(),ready():boolean,start(inp),stepHero(inp),step(),shot(),toWorld(p,out)` |
 | `createHeroView(scene,hero)` | Scene 与主角 | `reset(),update(dt)` |
@@ -261,7 +274,7 @@ InputSnapshot = {
 
 沿用 PRD 控制表：WASD/方向键移动，J/左键普攻，K/右键蓄力，Space 跳跃，L/Shift 闪避，I 无双，Q/E 或鼠标拖动旋转镜头。阻止 Space/方向键滚动和右键菜单；菜单按钮等交互元素不转成战斗输入。
 
-手柄取标准映射的首个 pad：左摇杆移动、右摇杆横向转镜头；按钮 0 跳跃、2 普攻、3 蓄力、1 无双、5/7 闪避。摇杆死区为 0.18。键盘与摇杆方向相加后归一化，防止斜向速度大于直线速度。
+手柄取标准映射的首个 pad：左摇杆移动、右摇杆横向转镜头；按钮 0 跳跃、2 普攻、3 蓄力、1 无双、5（R1）/7（R2/RT）闪避。基线手柄按键不写入 `held`，仅产生 `pressed` 边沿。摇杆每轴死区为 0.18；此外 `stickDir()` 对合成方向长度 <0.1 视为无输入。键盘与摇杆方向相加后归一化，防止斜向速度大于直线速度。
 
 手柄映射检测边沿时应按动作聚合，确保同一动作的多个按钮不会相互覆盖；断开手柄后清除前一设备的边沿记录。
 
@@ -291,24 +304,31 @@ stateDiagram-v2
     jump --> attack: 空中攻击
     jump --> land: 落地
     attack --> idle: 地面动作结束
-    attack --> jump: 空中动作结束
+    attack --> jump: 空中动作结束或地面招式在节拍帧跳跃取消
+    attack --> land: 空中招式无landFrame时触地
     land --> idle: 落地恢复
     land --> run: 移动取消
+    land --> attack: 仍有方向输入且runT达标时出dash
     idle --> dodge: 闪避
     run --> dodge: 闪避
     attack --> dodge: 允许取消且落地
     dodge --> attack: 允许攻击取消
     dodge --> run: 允许移动取消
+    dodge --> idle: 闪避结束
     idle --> hurt: 被有效攻击
     run --> hurt: 被有效攻击
+    jump --> hurt: 空中被有效攻击
     attack --> hurt: 无霸体保护时被有效攻击
     hurt --> idle: 恢复
     idle --> musou: 资源与姿态条件满足
     attack --> musou: 资源与姿态条件满足
+    run --> musou: 资源与姿态条件满足
+    dodge --> musou: 资源与姿态条件满足
+    land --> musou: 资源与姿态条件满足
     musou --> idle: 演出结束
 ```
 
-图仅展示主要路径；无双触发允许所有落地且非 hurt 的可处理状态。具体取消规则以第 6 节和 `hero.step()` 优先级为准。
+图覆盖 T03–T05、T10、T18 涉及的路径；无双触发允许所有落地且非 hurt 的状态（含 dodge 与 land）。具体取消规则以第 6 节和 `hero.step()` 优先级为准。
 
 | 参数 | 值 | 单位/用途 |
 | --- | --- | --- |
@@ -449,7 +469,7 @@ arc: circle 条件成立，且 wrap(atan2(lx,lz)-dir*PI/180)
 每次敌人有效命中按以下顺序结算：
 
 1. 减少敌人 HP，释放敌人攻击令牌；确定本次是否首次 KO，若是则设置 `kod`。
-2. 选择反应：flinch、push、launch、blow、spin 或 slam；普通轻攻击对未击破敌将的强击飞反应降为较弱的 push。
+2. 选择反应：flinch、push、launch、blow、spin 或 slam；任何非 `heavy` 命中（包括无双的 contact/front/dragon/rush 命中）对未被本次击破的敌将，launch/blow/spin 一律降为 push，且水平力度乘0.4；heavy 命中和致死命中不降级。
 3. 增加 `combo`，将 `comboT` 重置为150帧。
 4. 非无双状态下增加无双资源：每次命中0.3，首次 KO 额外0.55，上限100；无双状态下命中和首次 KO 均不增加资源。
 5. 先发出该敌人的 `hit`；首次 KO 时再累计 `kos` 增1并发出 `ko`。同一敌人击飞期间再次命中不重复增加 KO。
@@ -461,19 +481,27 @@ arc: circle 条件成立，且 wrap(atan2(lx,lz)-dir*PI/180)
 
 ```mermaid
 stateDiagram-v2
-    ADVANCE --> HURT: 轻命中
-    GUARD --> KNOCK: 击退
+    ADVANCE --> HURT: flinch（站立）
+    GUARD --> AIR: 普通兵push击倒/launch/blow/spin
+    GUARD --> KNOCK: 敌将push（站立踉跄）
     ATTACK --> AIR: 挑飞/吹飞
-    HURT --> GUARD: 恢复且仍有HP
-    KNOCK --> GUARD: 恢复且仍有HP
-    KNOCK --> AIR: 致死反应
+    HURT --> GUARD: 16帧后恢复且仍有HP
+    KNOCK --> GUARD: 22帧后恢复且仍有HP
+    HURT --> AIR: HP耗尽时原地倒下
+    KNOCK --> AIR: HP耗尽时原地倒下
+    AIR --> AIR: 空中追击重新弹起
+    DOWN --> AIR: flinch/push追打弹起
+    GETUP --> AIR: flinch/push追打弹起
     AIR --> DOWN: 落地且仍有HP
     AIR --> DEAD: 落地且HP耗尽
     DOWN --> GETUP: 倒地计时结束
     GETUP --> GUARD: 起身完成
     DEAD --> OFF: 尸体计时结束
-    OFF --> IDLE: 增援重用槽位
+    OFF --> ADVANCE: 增援重用槽位（冲锋小队/敌将）
+    OFF --> IDLE: 初始编队待命
 ```
+
+图中 ADVANCE/GUARD/ATTACK 起点可互换：受击反应取决于命中类型与敌人类型，而不是受击前状态。普通兵的 push 是“击倒”（进入 AIR 后躺地），只有敌将的 push 进入 KNOCK。
 
 - 敌人重力24；浮空顶点附近 `|vy|<1.8` 时重力乘0.5，形成短暂停留。
 - 空中阻尼0.985；落地可做一次受限反弹，之后倒地/死亡。
@@ -536,6 +564,8 @@ stateDiagram-v2
 
 每批可额外重生一名已回收的敌将；只有 OFF 槽可重用，未回收的 DEAD 不立即复活。发出 `crowd:wave`，HUD和Audio响应。`?enemies=0` 仍存在4名敌将槽位；0不是“无任何敌人”的模式，也没有足够普通兵空槽生成援军。
 
+**已知基线风险**：`waves()` 不检查 `makeSquad()` 的返回值。当64个小队槽全部占用时 `makeSquad` 返回-1且不放置任何士兵，但 `waves()` 仍重置 `waveT`、重生一名敌将并发出 `crowd:wave`（HUD显示“援兵到着”）。2000档开局即 `sq.n=64`，存在触发条件。交付修正：小队槽不足时本次不生成、不重生敌将、不发事件、不重置 `waveT`；`crowd:wave.count` 必须等于实际生成的普通兵数，由 T14/T15 断言。
+
 ## 9. 无双时间线与轨迹
 
 ### 9.1 发动条件和资源
@@ -567,7 +597,7 @@ stateDiagram-v2
 - 路径在 contact 的局部坐标系中：横向、上方、前方；`toWorld()` 使用锚点、朝向与side映射至世界。
 - 规则龙头命中与可见龙头读取同一轨迹；不得给表现层另写一条近似曲线。
 - 镜头 side 选择避开太阳方向，提高敌人被击飞的可见性；镜头变化不反向改变已锚定路径。
-- 终结波配置标称 `waveR=12`，基线公式加1的起始半径，最终范围达到13m；验收按公式，不能误将12m当作硬上限。
+- 终结波配置标称 `waveR=12`，基线公式加1的起始半径，最终波半径达到13m；命中判定再扩张敌人半径0.4m，实际有效命中半径13.4m。验收按公式，不能误将12m当作硬上限。
 
 ## 10. 渲染、镜头、HUD 与音频
 
@@ -603,9 +633,9 @@ VFX 消费 attack/hit/ko/musou 等事件，产生枪轨迹、冲刺光束、星�
 
 - DOM：生命条、三段无双、连击、KO、敌将血条、台词与横幅；Canvas 2D：头像和200×200小地图。
 - 生命条显示当前HP并保留短暂伤害滞后条；三段无双以 `musou/100*3` 映射，达到一段显示可用反馈。
-- 连击与KO允许短动画滚动，但需跟随规则真实值；击破里程碑先25，再每50；一次跨多个里程碑只突出最高一个。
+- 连击与KO允许短动画滚动，但需跟随规则真实值；击破里程碑先25，再每50；25只在非无双期间弹出；一次跨多个里程碑只突出最高一个。
 - 具名敌将按四个槽位映射：夏侯恩、晏明、淳于導、張郃；槽位重生后恢复满血标签。
-- 目标敌将优先最近命中的敌将（保持约10秒），否则取近处敌将；头顶标签通过camera投影，离屏隐藏/边缘处理。
+- 目标敌将优先最近命中的敌将（保持600帧约10秒，被击破后再保留70帧），否则取9m内最近的敌将；头顶标签通过camera投影，离屏隐藏/边缘处理。
 - 小地图围绕主角约30m，显示地形标识、敌人、敌将、视野方向与增援波纹。
 - 士气显示公式 `0.3 + 0.65 * kos/(kos+alive+1)`，只用于表现，不改变伤害、AI或胜负。
 - 横幅队列上限3；增援提示节流约600帧；无双演出暂时弱化冲突提示，结束后恢复。
@@ -662,7 +692,15 @@ VFX 消费 attack/hit/ko/musou 等事件，产生枪轨迹、冲刺光束、星�
 | 无双 | MUSOU | 阶段时间线、伤害和龙影共用配置 |
 | 画面/镜头 | Post/CAM | 不影响模拟确定性 |
 
-基线参数使用 `Number(value)|0` 后夹到0–2000。交付输入解析应保证有效值0、300、2000与基线一致；异常字符串、NaN、Infinity以及32位溢出作为防御性处理，可明确回落300；有限小数截断后夹范围。该异常输入规则为交付补充，不是上游既有行为。
+基线参数使用 `Number(value)|0` 后夹到0–2000：空值得300，但 `abc`、`NaN`、`Infinity` 得0，超过32位的数值可能溢出为任意值。交付解析规则（唯一口径，与PRD FR-12一致）：
+
+| 输入 | 结果 |
+| --- | --- |
+| 缺省、空字符串 | 300 |
+| 非有限数值：`abc`、`NaN`、`Infinity`、`-Infinity` | 300 |
+| 有限数值 | `Math.trunc` 后夹到0–2000（如 `-5`→0、`12.9`→12、`1e9`→2000） |
+
+有效值0、300、2000与基线一致；非有限数值回落300是对基线的有意修正，已写入PRD。
 
 ### 12.2 异常路径
 
@@ -672,7 +710,7 @@ VFX 消费 attack/hit/ko/musou 等事件，产生枪轨迹、冲刺光束、星�
 - resize为零尺寸：跳过分辨率计算/渲染，恢复非零尺寸后重建尺寸；避免除零。
 - 音频初始化/resume失败：记录警告，允许无声继续游戏。
 - 空敌人查询：`nearest()` 返回-1；HUD和软锁定必须处理-1，不读取负数组索引。
-- 粒子/小队槽满：停止新增或按池策略覆盖视觉；规则不崩溃，不写越界数组。
+- 粒子/小队槽满：停止新增或按池策略覆盖视觉；规则不崩溃，不写越界数组；小队槽满时增援按第8.5节不发出虚假的 `crowd:wave`。
 
 以上错误显示是交付补充；具体实现仅在对应模块加入局部处理，不引入后台或全局错误框架。
 
@@ -699,7 +737,9 @@ createSimulationForTest({ grunts = 300, seed = 1, wavesOn = false })
 setReinforcementsForTest(game, enabled)
   -> 设置crowd.wavesOn并把crowd.waveT重置为0
 driveRenderSchedule(sim, elapsedSequence, inputScriptByStep)
-  -> 复用生产调度帮助函数，返回规则快照、各渲染帧补步数与积压丢弃记录
+  -> 用 src/core/loop.js 的 createFixedLoop 驱动，返回规则快照、各渲染帧补步数与积压丢弃记录
+createInputForTest({ pads }) -> createInput({ target: 新EventTarget, getGamepads: () => pads })
+  -> 用合成 KeyboardEvent/PointerEvent 驱动，pads 为可修改的 {buttons, axes} 桩对象；测试结束调用 dispose()
 emptyInput() -> 完整InputSnapshot，所有动作false，方向/旋转0
 captureGameplayState(game) -> 主角规则字段、敌军规则数组、镜头控制字段、rng.state
 assertEqual(actual, expected, label) -> 不同则抛出包含label的Error
@@ -716,7 +756,7 @@ assertNear(actual, expected, epsilon, label) -> 超出误差则抛出Error
 
 | 用例 | 构造/输入 | 必须断言 |
 | --- | --- | --- |
-| T01 输入边沿 | 同一步前keydown/keyup；长按repeat | 首次pressed=true，下一采样false；repeat不重复攻击 |
+| T01 输入边沿 | 同一步前keydown/keyup；长按repeat；拖动中blur后无按键pointermove | 首次pressed=true，下一采样false；repeat不重复攻击；blur后orbit为0 |
 | T02 方向合并 | W+D；摇杆死区；键鼠与手柄同动作 | 方向长度<=1；死区零；单动作边沿不被其他绑定覆盖 |
 | T03 连招分支 | 每个N1–N5在branch前输入charge并步进 | 进入对应C2–C6；无缓冲恢复后普通攻击从N1开始 |
 | T04 取消边界 | 招式前摇/命中/恢复期间输入dodge | 仅按dodgeOk取消；不截断受保护的蓄力核心阶段 |
@@ -729,10 +769,10 @@ assertNear(actual, expected, epsilon, label) -> 超出误差则抛出Error
 | T11 无双边界 | 资源略低于一段/正好一段；空中/hurt触发 | 可用阈值含误差；不满足姿态不发动；结束扣一段 |
 | T12 无双共享轨迹 | 指定contact锚点、朝向与side | toWorld与视图使用的轨迹一致；伤害键不重复KO |
 | T13 攻击令牌 | 多候选者，攻击/被击飞/超时 | tokensUsed<=3，前摇人数<=2；令牌回收计数一致 |
-| T14 槽位复用 | DEAD超过210帧 -> OFF；先在增援关闭状态跨过生成阈值，再显式开启增援并清零waveT直到波次重生 | 关闭时不产生援军；开启后HP、lastHit、kod和攻击状态重置；N不增长 |
+| T14 槽位复用 | DEAD超过210帧 -> OFF；先在增援关闭状态跨过生成阈值，再显式开启增援并清零waveT直到波次重生；另将小队表占满后触发增援 | 关闭时不产生援军；开启后HP、lastHit、kod和攻击状态重置；N不增长；`crowd:wave.count`等于实际生成数，小队表满时不发事件 |
 | T15 容量边界 | grunts=0/300/2000，seed=1；分别记录spawnArmy后的非OFF普通兵数与小队数 | N=4/304/2004且无越界；0档仍有4敌将；2000档为容量测试，固定提交初始实际生成1583名普通兵且sq.n=64，不以N冒充实际参战数 |
 | T16 调度确定性 | seed=1，同一逐模拟步输入脚本分别由稳定与不规则rAF调度推进至600步；另注入超过4步积压及暂停/恢复 | 相同引擎下规则快照一致；视觉采样不消耗模拟rng；单帧最多4步并丢弃积压；pressed只消费一次；暂停期间边沿恢复后不重放 |
-| T17 参数异常 | 缺省、0、负数、上限外、小数、NaN/Infinity | 按第12.1节得到明确人数，无溢出异常 |
+| T17 参数异常 | 缺省、空值、0、-5、12.9、2001、1e9、abc、NaN、Infinity | 依第12.1节表格分别为300、300、0、0、12、2000、2000、300、300、300 |
 | T18 突进阈值 | 落地奔跑到runT=13/14分别按attack；奔跑跳跃落地时保持/释放方向 | 13帧进入N1；14帧进入dash；落地仅在runT达标且仍有方向输入时进入dash |
 
 test不应仅检查常量值；需实际调用step、strike或输入事件，证明行为和时序。视觉冻结不属于规则快照，可通过浏览器人工场景核对。
@@ -759,7 +799,7 @@ test不应仅检查常量值；需实际调用step、strike或输入事件，证
 - 默认画面保留体素兵群、黄昏城池、打击与无双表现；不能用仅有数值逻辑的方块场景当作完整完成。
 - 交付源码、静态运行步骤、测试页、验证记录以及第三方许可证。
 
-导入基线时保留项目MIT许可证、Three.js的MIT声明与HUD字体的SIL OFL声明；不可在裁剪源码或资源时移除对应授权信息。
+导入基线时保留项目MIT许可证、Three.js源文件头的MIT声明与HUD字体的SIL OFL声明；不可在裁剪源码或资源时移除对应授权信息。固定提交只在README与 `index.html` 注释中说明字体采用SIL OFL 1.1，未附独立许可文本；交付时在 `src/ui/` 增加 `OFL.txt`（字体版权声明 + OFL 1.1 全文）。
 
 ## 14. Luna 分阶段开发交接
 
@@ -767,11 +807,11 @@ test不应仅检查常量值；需实际调用step、strike或输入事件，证
 
 | 阶段 | 涉及文件 | 本阶段交付 | 下一阶段入口条件 |
 | --- | --- | --- | --- |
-| D1 固定基线与启动 | index、main、vendor、LICENSE | 确认提交，静态服务可打开首屏，整理运行说明 | 无模块/资源缺失 |
-| D2 输入与生命周期 | input、main、tests/harness | 输入边沿、菜单/失焦恢复、人数解析；建立测试页 | T01/T02/T15/T17通过，暂停人工用例通过 |
+| D1 固定基线与启动 | index、main、vendor、LICENSE、src/ui/OFL.txt | 按固定提交导入源码树（不带上游 `.git` 历史，保留现有 `docs/`），补字体许可文本，静态服务可打开首屏，整理运行说明 | 无模块/资源缺失 |
+| D2 输入与生命周期 | input、main、core/loop、tests/harness | 输入边沿、失焦拖动修正、调度抽取、人数解析；建立测试页 | T01/T02/T15/T17通过，暂停人工用例通过 |
 | D3 主角与连招 | hero、locomotion、combo、moves、anims、rig | 普通/蓄力/空中/闪避的状态和表现 | T03/T04/T05/T10/T18通过；全部动作可见 |
 | D4 Combat | combat、hitfx、测试用例 | 几何命中、伤害、KO与反应时序 | T06/T07/T08/T09通过 |
-| D5 Crowd | crowd、view、测试用例 | 编队、包围、令牌、增援、槽位复用 | T13/T14/T15通过，默认兵群人工场景通过 |
+| D5 Crowd | crowd、view、测试用例 | 编队、包围、令牌、增援（含小队槽满修正）、槽位复用 | T13/T14/T15通过，默认兵群人工场景通过 |
 | D6 Musou | musou、view、camera | 一段触发、阶段伤害、共享龙影与回归镜头 | T11/T12通过，完整无双人工场景通过 |
 | D7 音画与信息 | world、vfx、post、audio、hud | 完整战场、粒子池、HUD、声音、异常提示 | 默认完整体验及resize/无声降级通过 |
 | D8 集成与交付 | 全部模块、docs/verification | 确定性、长时运行、性能矩阵和FR追溯报告 | T16及全部Done检查完成 |
