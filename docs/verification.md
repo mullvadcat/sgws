@@ -19,7 +19,7 @@
 python3 tools/serve.py
 ```
 
-- 游戏：`http://127.0.0.1:8000/`；验证用只读句柄：`http://127.0.0.1:8000/?debug`（`window.__voxelMusou = { game, loop, enemies, scene, renderer }`，游戏逻辑不读取它）。
+- 游戏：`http://127.0.0.1:8000/`；安全观测句柄：`http://127.0.0.1:8000/?debug`，通过`window.__voxelMusou.snapshot()`和`renderStats()`读取冻结快照。需要直接安排HP、资源或兵群状态时才使用`window.__voxelMusou.unsafe.game`；游戏逻辑不读取调试句柄。
 - 规则测试：`http://127.0.0.1:8000/tests/index.html`；只跑部分用例：`?only=T03,T16`。结果同时写入 `window.__testResults`。
 - 开发服务器自测：`python3 tools/test_serve.py`，覆盖 no-store 响应头及 32 个并发请求。
 

@@ -6,7 +6,7 @@
 - 无构建、无 npm 依赖：原生 ES Modules + `vendor/three`（r186）。启动：`python3 tools/serve.py`，打开 `http://127.0.0.1:8000/`。该服务器为多线程请求并发送 `Cache-Control: no-store`。
 - 规则测试：浏览器打开 `http://127.0.0.1:8000/tests/index.html`（`?only=T03,T16` 只跑部分），结果在页面和 `window.__testResults`。改动玩法、输入、调度或兵群后必须跑。
 - 开发服务器自测：`python3 tools/test_serve.py`；改代码后浏览器无需为该服务强制刷新模块缓存。
-- `?debug` 暴露只读句柄 `window.__voxelMusou`，供手动验证；游戏逻辑不得读取它。
+- `?debug` 暴露 `window.__voxelMusou.snapshot()` / `renderStats()` 冻结快照；需要安排测试状态时显式使用 `.unsafe` 下的原始引用。游戏逻辑不得读取该调试句柄。
 
 ## 约束
 - 模拟以固定 60 Hz 步进（`src/core/loop.js`）；渲染/VFX/HUD/音频只读模拟状态，不得消耗模拟 `rng`，否则 T16 确定性失败。

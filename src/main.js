@@ -18,6 +18,7 @@ import { createHud } from './ui/hud.js';
 import { createAudio } from './audio/audio.js';
 import { createFixedLoop } from './core/loop.js';
 import { parseEnemyCount } from './core/config.js';
+import { createDebugHandle } from './core/debug.js';
 
 const params = new URLSearchParams(location.search);
 const ENEMIES = parseEnemyCount(params.get('enemies'));
@@ -106,8 +107,8 @@ const setPaused = (v) => {
   if (contextLost && !v) return;                       // no GPU scene to resume into
   loop.setPaused(v); menu.hidden = !v; hudEl.hidden = v; input.sample();   // sample(): drop keys pressed on the menu
 };
-// ?debug: read-only handle for manual verification (docs/verification.md); nothing in the game reads it
-if (params.has('debug')) window.__voxelMusou = { game, loop, enemies: ENEMIES, scene, renderer: post.renderer };
+// ?debug exposes safe snapshots and explicitly unsafe live references; nothing in the game reads it.
+if (params.has('debug')) window.__voxelMusou = createDebugHandle({ game, loop, enemies: ENEMIES, scene, renderer: post.renderer });
 canvas.addEventListener('webglcontextlost', (e) => {
   e.preventDefault();
   setPaused(true); contextLost = true;
