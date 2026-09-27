@@ -41,11 +41,11 @@ Task 1 → Task 2 → Task 3 → Task 4。Task 5 是产品规划，交付后单�
 
 **Deliverable:** GitHub 的 `main` 包含已验证的 6 个加固提交和计划文件。
 
-- [ ] 执行 `git status -sb`、`git remote -v`、`git fetch origin`；核对目标为 `mullvadcat/sgws`，检查 `git log --oneline origin/main..HEAD`。
-- [ ] 检查两份计划没有秘密或临时日志，独立提交计划文件：`docs: add SGWS execution plans`。
-- [ ] 运行 JavaScript 语法检查、`python3 tools/test_serve.py` 和完整浏览器规则套件；保存当前提交与实际结果。若新增提交仅是文档，可引用同一轮对未变化实现的测试证据。
-- [ ] 普通 fast-forward 推送 `git push origin main`。远端有新提交时先检查差异，保留双方工作并重新验证，不 force push。
-- [ ] fetch 后确认 `git rev-parse HEAD` 与 `git rev-parse origin/main` 一致。
+- [x] 执行 `git status -sb`、`git remote -v`、`git fetch origin`；核对目标为 `mullvadcat/sgws`，检查 `git log --oneline origin/main..HEAD`。
+- [x] 检查两份计划没有秘密或临时日志，独立提交计划文件：`docs: add SGWS execution plans`。
+- [x] 运行 JavaScript 语法检查、`python3 tools/test_serve.py` 和完整浏览器规则套件；保存当前提交与实际结果。若新增提交仅是文档，可引用同一轮对未变化实现的测试证据。
+- [x] 普通 fast-forward 推送 `git push origin main`。远端有新提交时先检查差异，保留双方工作并重新验证，不 force push。
+- [x] fetch 后确认 `git rev-parse HEAD` 与 `git rev-parse origin/main` 一致。
 
 ### Task 2：修复随仓字体的简体覆盖
 
@@ -100,7 +100,7 @@ Task 1 → Task 2 → Task 3 → Task 4。Task 5 是产品规划，交付后单�
 - [ ] 将推荐项写成具体提案：胜负条件、主角是否死亡、单局时长、重试/结算流程、敌人及资源平衡、成绩是否持久化。数值标为提案，不能写成已批准需求。
 - [ ] 列出目标平台与 FPS 门槛候选、必要可访问性功能；角色/关卡/成长扩展另列，避免扩大第一个闭环。
 - [ ] 根据 PRD 既有说明保留发行权利待决策项；本任务不新增法律结论或商业发布承诺。
-- [ ] 提交提案供用户选择；收到玩法与目标平台选择后，再更新 PRD/SDD，并为所选机制编写单独 TDD 实施计划。
+- [ ] 提交提案供用户选择，独立提交：`docs: propose next-stage product scope`；作为本计划最后一项，执行验证后推送并确认 `main` 与 `origin/main` 一致。收到玩法与目标平台选择后，再更新 PRD/SDD，并为所选机制编写单独 TDD 实施计划。
 
 ## 完成标准与交接
 
