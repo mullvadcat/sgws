@@ -23,6 +23,13 @@ import { createDebugHandle } from './core/debug.js';
 const params = new URLSearchParams(location.search);
 const ENEMIES = parseEnemyCount(params.get('enemies'));
 
+// Canvas textures are drawn once during world creation; wait for their bundled face so a cold cache
+// cannot permanently bake host-system glyphs into banners or labels.
+await Promise.all([
+  document.fonts.load('700 44px "HudBrush"', '魏蜀赵云'),
+  document.fonts.load('700 44px "HudBrushFallback"', '郃·'),
+]);
+
 const canvas = document.getElementById('c');
 let vw = Math.max(1, innerWidth), vh = Math.max(1, innerHeight);
 

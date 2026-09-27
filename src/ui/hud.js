@@ -368,7 +368,7 @@ export function createHud(root, game, { camera = null } = {}) {
         const gx = Math.max(16, Math.min(184, X(GATE_X)));
         map.fillStyle = '#d0a040';
         map.beginPath(); map.moveTo(gx, 3); map.lineTo(gx - 5, 10); map.lineTo(gx + 5, 10); map.fill();
-        map.font = '700 15px "Xingkai SC", "Kaiti SC", "HudBrush", serif'; map.textAlign = 'center'; map.fillStyle = 'rgba(236,214,172,0.9)';
+        map.font = '700 15px "HudBrush", "HudBrushFallback", serif'; map.textAlign = 'center'; map.fillStyle = 'rgba(236,214,172,0.9)';
         map.fillText('城门', gx, 26);
       }
       S.waves = S.waves.filter((w) => f - w.f < 120);

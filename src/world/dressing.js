@@ -21,7 +21,7 @@ function bannerTexture(ch, { bg, fg, border, w = 128, h = 256, tatter = true, se
   }
   if (border) { g.strokeStyle = border; g.lineWidth = w * 0.09; g.strokeRect(w * 0.045, w * 0.045, w * 0.91, h * 0.86); }
   g.fillStyle = fg;
-  g.font = `bold ${Math.round(w * 0.66)}px "Xingkai SC","STXingkai","Kaiti SC","STKaiti","KaiTi","Songti SC",serif`;
+  g.font = `bold ${Math.round(w * 0.66)}px "HudBrush","HudBrushFallback",serif`;
   g.textAlign = 'center'; g.textBaseline = 'middle';
   if (ch) g.fillText(ch, w / 2, h * 0.42);   // fill only: a stroke closes 魏's dense counters into a blob at gameplay distance
   const grad = g.createLinearGradient(0, 0, 0, h);                    // soot toward the hem

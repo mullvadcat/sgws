@@ -166,7 +166,7 @@ function flagTexture() {
   g.fillStyle = '#e0b058'; g.fillRect(0, 0, 64, 5); g.fillRect(0, 0, 4, 112); g.fillRect(60, 0, 4, 112);
   g.fillStyle = 'rgba(255,225,180,0.28)'; g.fillRect(10, 16, 44, 60);                  // lighter panel behind the character
   g.fillStyle = '#1a0f0c';
-  g.font = 'bold 44px "Xingkai SC","STXingkai","Kaiti SC","STKaiti","KaiTi","Songti SC",serif';
+  g.font = 'bold 44px "HudBrush","HudBrushFallback",serif';
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillText('魏', 32, 46);
   g.globalCompositeOperation = 'destination-out';                                    // swallow-tail bottom

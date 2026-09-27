@@ -46,6 +46,22 @@ python3 tools/serve.py
 
 被测代码提交：`9c60cf7205498d17d67b7743dfd2dfda380904c5`（本提交只增加计划文档，规则实现与 `7d26a1a` 相同）。Codex 内置浏览器 `Chrome/154.0.0.0` 完整规则套件 47/47 通过；`python3 tools/test_serve.py` 4/4 通过；`find src tests -name '*.js' -print0 | xargs -0 -n1 node --check` 通过。T15 显示 2000 容量档 `N=2004`、初始生成 1583 普通兵、小队 64。验证发生在计划文档提交后、结果记录提交前。
 
+### 2.4 后续计划 Task 2 字体覆盖（2026-09-27）
+
+| 项 | 本轮实测 |
+| --- | --- |
+| 字体源与工具 | Ma Shan Zheng commit `72c50ec001cea63d223d35562eeb2ba42f0fe67a`；Noto Serif SC Google Fonts commit `23e54b51ddffbc7713c583748e3bd86f62b1fa4a`；FontTools 4.60.2 / Brotli 1.2.0 |
+| 字表 / 覆盖 | `tools/hud-glyphs.txt` 共 143 个非空白码点；主字体独立缺 U+00B7、U+90C3，Noto 两字子集补齐后检查 143/143，无缺字 |
+| 旧字体诊断 | 替换前的 `brush.woff2` 对更新字表缺 66 个码点；本轮实测结果包含拉丁大写、简体字与 U+00B7/U+90C3，不沿用旧记录的“37字”统计 |
+| 工具回归 | `python -m unittest tools.test_check_hud_font -v`，5/5 通过；覆盖完整、缺字码点、重复缺字、空字表和多字体回退 |
+| 游戏规则 | Codex 内置浏览器 `Chrome/154.0.0.0`，完整规则套件 47/47 通过（T01–T18、H01–H04 均保留） |
+| 服务与语法 | `python3 tools/test_serve.py` 4/4 通过；`find src tests -name '*.js' -print0 | xargs -0 -n1 node --check` 通过 |
+| 浏览器 / 视口 | Codex 内置 Chromium `Chrome/154.0.0.0`，DPR 1；显式实测 CSS 视口 1280×720 与 1920×1080，canvas backing size 与视口一致 |
+| 首屏 / HUD | 两个分辨率均检查菜单与开局 HUD；赵云、无双、数字、简体字幕、“张郃”敌将名与 Canvas 标记清晰，无缺字；实际 `document.fonts.check` 对主字体与两字回退字体均为 true |
+| 冷加载延迟 | 临时 no-store 本地源对每份 WOFF2 延迟 2 秒。字体未就绪时静态菜单可见、`#c` 仍为默认 300px（主模块尚未创建场景）；加载完成后两字体检查为 true、canvas 为 1280×720、无启动错误，菜单恢复随仓行楷。首次字体未到时 CSS 会短暂显示通用 serif；没有永久错误 Canvas 纹理 |
+
+复现与源文件 SHA-256、裁剪命令见 [`docs/font-build.md`](font-build.md)。以上结果由本轮实际执行产生；记录与字体实现一起提交。
+
 ## 3. 自动规则测试（SDD 13.2）
 
 结果：**47/47 通过**（T01–T18 全部有用例，并含 H01–H04 验收用例；加固复核由 Playwright `HeadlessChrome/153.0.0.0` 跑 46/46；复审修复及后续计划 Task 1 复验均由 Codex 内置 `Chrome/154.0.0.0` 跑 47/47）。
@@ -129,9 +145,9 @@ python3 tools/serve.py
 
 ## 6. 已知问题与限制
 
-- HUD 回退字体 `src/ui/brush.woff2` 是按繁体字裁剪的子集，改为简体后 77 个用字中缺 37 个（如“赵、云、无、双、龙”）。macOS 的“行楷/楷体”排在字体栈前面，不受影响；Windows/Linux 缺字会回退到 serif。需要换用覆盖简体的 OFL 字体并重新裁剪。
+- 历史限制（Task 2 前）：旧 `brush.woff2` 面对当时字表报告 37 个缺字，系统行楷字体在 macOS 掩盖了问题。Task 2 已将其替换为 Ma Shan Zheng 子集，并用 Noto Serif SC 两字子集补足 `·`、`郃`；两字体联合覆盖当前 143 个字表码点。新增文案仍须同步字表并重新运行检查器。
 - 仅作为备用方案时可用 `python3 -m http.server`，但它不设置 `Cache-Control: no-store`，默认请求队列长度为 5；开发和验收请使用 `python3 tools/serve.py`。
-- Firefox、Safari、1920×1080、实体手柄：未验证。
+- Firefox、Safari、125% 缩放、实体手柄：未验证；完整的 1920×1080 功能/resize 验收留待兼容性矩阵（Task 2 已单独完成该分辨率的菜单与 HUD 字体视觉检查）。
 
 ## 7. PRD 追溯
 

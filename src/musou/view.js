@@ -158,13 +158,13 @@ export function createMusouView(scene, game, camera) {
   // integration r1: placed under the HUD's square minimap (ends ≈ 34 vh) and left of the HUD's vertical musou copy
   const css = document.createElement('style');
   css.textContent = `
-    .mu-cut { position: fixed; inset: 0; pointer-events: none; z-index: 5; opacity: 0; font-family: "Xingkai SC", "STXingkai", "Libian SC", "Kaiti SC", "STKaiti", serif; }
+    .mu-cut { position: fixed; inset: 0; pointer-events: none; z-index: 5; opacity: 0; font-family: "HudBrush", "HudBrushFallback", serif; }
     .mu-cut .big { position: absolute; right: 11%; top: 36%; writing-mode: vertical-rl; font-size: 18vh; line-height: 1; color: #f7f3ea; transform-origin: 50% 40%;
       text-shadow: 0 0 2px #0b1418, 6px 8px 0 rgba(4,10,14,.55), 0 0 28px rgba(110,220,255,.55); letter-spacing: -1vh; }
     .mu-cut .seal { position: absolute; right: 21.5%; top: 64%; width: 7vh; height: 7vh; background: #a8261b; color: #f3e2c8; border-radius: 0.8vh;
-      font: 3.1vh/3.4vh "Kaiti SC", "STKaiti", serif; writing-mode: vertical-rl; display: flex; align-items: center; justify-content: center;
+      font: 3.1vh/3.4vh "HudBrush", "HudBrushFallback", serif; writing-mode: vertical-rl; display: flex; align-items: center; justify-content: center;
       box-shadow: 0 0 0 0.35vh rgba(243,226,200,.25) inset, 3px 4px 0 rgba(0,0,0,.4); transform-origin: 50% 50%; }
-    .mu-cut .sub { position: absolute; right: 22.5%; top: 37%; writing-mode: vertical-rl; font: 3vh/1 "Kaiti SC", "STKaiti", serif; letter-spacing: 1.2vh;
+    .mu-cut .sub { position: absolute; right: 22.5%; top: 37%; writing-mode: vertical-rl; font: 3vh/1 "HudBrush", "HudBrushFallback", serif; letter-spacing: 1.2vh;
       color: #d8f4ff; text-shadow: 0 0 10px rgba(80,200,255,.7), 2px 2px 0 rgba(0,0,0,.6); }`;
   document.head.appendChild(css);
   const cut = document.createElement('div');

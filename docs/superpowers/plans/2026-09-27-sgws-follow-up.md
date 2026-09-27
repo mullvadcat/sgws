@@ -50,19 +50,19 @@ Task 1 → Task 2 → Task 3 → Task 4。Task 5 是产品规划，交付后单�
 ### Task 2：修复随仓字体的简体覆盖
 
 **Files:**
-- Create: `tools/check_hud_font.py`、`tools/test_check_hud_font.py`、`tools/hud-glyphs.txt`、`docs/font-build.md`。
-- Modify: `src/ui/brush.woff2`、`src/ui/OFL.txt`、`index.html`。
+- Create: `tools/check_hud_font.py`、`tools/test_check_hud_font.py`、`tools/hud-glyphs.txt`、`tools/hud-glyphs-fallback.txt`、`docs/font-build.md`。
+- Modify: `src/ui/brush.woff2`、`src/ui/brush-fallback.woff2`、`src/ui/OFL.txt`、`src/ui/OFL-NotoSerifSC.txt`、`index.html`、必要的 canvas/演出文字样式、`docs/verification.md`。
 - Modify if required: `src/ui/hud.js`（仅修复字体加载后的 canvas 重绘）。
 
-**Interfaces:** `check_hud_font.py --font PATH --text PATH` 检查 Unicode cmap；输出缺失码点，缺字返回非零退出码。字表包括菜单、HUD、敌将姓名、字幕、错误提示、数字和实际使用的符号；新增文案必须同步字表。
+**Interfaces:** `check_hud_font.py --font PATH [--font FALLBACK_PATH ...] --text PATH` 检查字体栈的 Unicode cmap；输出缺失码点，缺字返回非零退出码。字表包括菜单、HUD、敌将姓名、字幕、错误提示、数字和实际使用的符号；新增文案必须同步字表。
 
-- [ ] 从 `index.html` 和 `src/ui/hud.js` 枚举实际文字，建立 UTF-8 字表；重新测量当前字体缺字，记录具体码点。不得直接沿用历史“37 字”作为本轮结果。
-- [ ] TDD：先写覆盖“完整覆盖通过、缺字失败、重复字符不重复报错、空字表拒绝”的测试；运行并确认失败原因正确，再实现检查工具。使用可构造的最小字体 fixture，避免测试依赖网络下载。
-- [ ] 对旧 `brush.woff2` 运行检查，确认缺字失败。选择覆盖字表且允许分发/裁剪的 OFL 字体；从作者或官方发布源核验授权，记录来源、版本、原始文件 SHA-256 和字体工具版本。
-- [ ] 裁剪为 WOFF2，沿用 `HudBrush` CSS 家族；按授权要求更新 `OFL.txt` 和相关署名。将可重复的裁剪命令记录到 `docs/font-build.md`；不提交缓存或整套工具环境。
-- [ ] 运行字体检查得到零缺字；强制菜单、HUD 和 canvas 文本使用 `HudBrush`，禁用优先系统字体后，分别在 1280×720、1920×1080 检查姓名、无双、龙影、数字和字幕。
-- [ ] 模拟首次冷加载字体延迟，检查首次绘制与加载后显示；若出现持续错误绘制，先增加对应浏览器回归用例，再修复必要的 font-ready 重绘。
-- [ ] 完整规则套件通过，更新验证记录，独立提交：`fix: cover simplified Chinese in bundled HUD font`。
+- [x] 从 `index.html`、`src/ui/hud.js` 与演出/兵旗 Canvas 文案枚举实际文字，建立 UTF-8 字表；旧字体本轮实测缺 66 个唯一码点（不沿用历史“37 字”）。
+- [x] TDD：完整覆盖、缺字码点、重复缺字、空字表、多字体回退共 5 项测试；先看到回退测试因 CLI 单字体而失败，再实现多 `--font` cmap 合并，5/5 通过。
+- [x] 对旧 `brush.woff2` 运行检查确认失败；Ma Shan Zheng 主字体缺 U+00B7/U+90C3，采用 OFL 主字体与 Noto Serif SC 两字回退并记录上游 commit、原始 SHA-256、FontTools/Brotli 版本。
+- [x] 裁剪两份 WOFF2；更新各自完整 OFL 署名，记录可复现命令于 `docs/font-build.md`，未提交上游缓存/工具环境。
+- [x] 字体检查联合覆盖 143/143；菜单、HUD、场景旗帜和 Canvas 文本优先使用随仓字体；Chrome 154 DPR 1 的 1280×720 / 1920×1080 首屏与 HUD 均已检查，无系统中文字体优先项。
+- [x] 对 no-store 临时源模拟每份字体 2 秒延迟；加载中菜单可见但场景 Canvas 仍为默认大小，字体就绪后场景初始化完成，首屏及 Canvas 标记正确，无持续错误绘制。
+- [x] 完整规则套件 47/47、字体工具 5/5、服务端 4/4、JS 语法检查通过；实测已写入验证记录并随 Task 2 独立提交。
 
 ### Task 3：补齐兼容性验收矩阵
 
