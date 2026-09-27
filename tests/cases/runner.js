@@ -36,4 +36,15 @@ export default [
     try { await selected[0].fn(); } catch (e) { message = e.message; }
     assert(message.includes('requested test id not found: T99'), `unexpected error: ${message}`);
   } },
+  { id: 'H04', name: 'untrusted test labels are rendered as text', async fn() {
+    const { createResultRow } = await runnerApi();
+    const payload = '<img src=x onerror="window.__injected=true">';
+    const row = createResultRow(document, {
+      id: `MISSING:${payload}`, name: payload, ok: false, ms: 0, detail: payload,
+    });
+    assert(!row.querySelector('img'), 'untrusted labels must not create HTML elements');
+    assert(row.cells[0].textContent === `MISSING:${payload}`, 'ID must be preserved as plain text');
+    assert(row.cells[1].textContent === payload, 'name must be preserved as plain text');
+    assert(row.cells[3].textContent === payload, 'detail must be preserved as plain text');
+  } },
 ];

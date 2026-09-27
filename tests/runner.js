@@ -11,6 +11,30 @@ const failureCase = (id, name, message) => ({
   fn() { throw new Error(message); },
 });
 
+/** Render test output without interpreting test-controlled strings as markup. */
+export function createResultRow(document, result) {
+  const row = document.createElement('tr');
+  const id = document.createElement('td');
+  id.textContent = result.id;
+  row.appendChild(id);
+
+  const name = document.createElement('td');
+  name.textContent = result.name;
+  row.appendChild(name);
+
+  const status = document.createElement('td');
+  status.className = result.ok ? 'pass' : 'fail';
+  status.textContent = `${result.ok ? 'PASS' : 'FAIL'} (${result.ms} ms)`;
+  row.appendChild(status);
+
+  const detail = document.createElement('td');
+  const pre = document.createElement('pre');
+  pre.textContent = result.detail;
+  detail.appendChild(pre);
+  row.appendChild(detail);
+  return row;
+}
+
 /** Import every case module, then apply the requested-ID filter without hiding infrastructure failures. */
 export async function collectCases(modulePaths, requestedIds, importer = (path) => import(path)) {
   const loaded = [];

@@ -1,4 +1,4 @@
-import { collectCases, parseRequestedIds } from './runner.js';
+import { collectCases, createResultRow, parseRequestedIds } from './runner.js';
 
 const MODULES = [
   './cases/input.js', './cases/hero.js', './cases/combat.js', './cases/crowd.js',
@@ -24,10 +24,7 @@ for (const testCase of tests) {
   result.ms = Math.round(performance.now() - started);
   results.push(result);
 
-  const row = document.createElement('tr');
-  row.innerHTML = `<td>${result.id}</td><td>${result.name}</td><td class="${result.ok ? 'pass' : 'fail'}">${result.ok ? 'PASS' : 'FAIL'} (${result.ms} ms)</td><td><pre></pre></td>`;
-  row.querySelector('pre').textContent = result.detail;
-  rows.appendChild(row);
+  rows.appendChild(createResultRow(document, result));
 }
 
 const failed = results.filter((result) => !result.ok).length;
