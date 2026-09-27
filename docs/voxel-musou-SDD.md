@@ -738,8 +738,8 @@ createSimulationForTest({ grunts = 300, seed = 1, wavesOn = false })
   -> { game, step(inputSnapshot), dispose() }
 setReinforcementsForTest(game, enabled)
   -> 设置crowd.wavesOn并把crowd.waveT重置为0
-driveRenderSchedule(sim, elapsedSequence, inputScriptByStep)
-  -> 用 src/core/loop.js 的 createFixedLoop 驱动，返回规则快照、各渲染帧补步数与积压丢弃记录
+driveRenderSchedule(sim, elapsedSequence, inputScriptByStep, { pauseAt = {}, render = () => {} })
+  -> 用 src/core/loop.js 的 createFixedLoop 驱动；可注入每次渲染帧调用一次的render回调，返回规则快照、各渲染帧补步数与积压丢弃记录
 createInputForTest({ pads }) -> createInput({ target: 新EventTarget, getGamepads: () => pads })
   -> 用合成 KeyboardEvent/PointerEvent 驱动，pads 为可修改的 {buttons, axes} 桩对象；测试结束调用 dispose()
 emptyInput() -> 完整InputSnapshot，所有动作false，方向/旋转0
@@ -752,7 +752,7 @@ assertNear(actual, expected, epsilon, label) -> 超出误差则抛出Error
 
 玩法快照包含 `frame/hitstop/freeze`、主角状态/位姿/资源/计数、敌军状态/位姿/资源/令牌/小队、控制镜头与模拟RNG状态；排除函数、DOM、Three对象、视觉RNG和表现辅助字段。
 
-`assertEqual`需支持数字、字符串、布尔、普通数组和对象的深比较；快照将TypedArray转换为普通数组。涉及计算公式的边界断言用`assertNear`，重复确定性在同一浏览器引擎内按相同模拟步数逐字段比较。
+`assertEqual`需支持数字、字符串、布尔、普通数组和对象的深比较；快照将TypedArray转换为普通数组。涉及计算公式的边界断言用`assertNear`。T16以相同逐模拟步输入推进稳定与不规则渲染调度，并比较规则快照和模拟RNG；视觉RNG允许随渲染次数不同而消耗不同数量。H02静态检查渲染侧模块不得从`core/rng.js`导入模拟`rng`，但允许`vrng`、`hash01`和局部`makeRng()`。headless调度测试不执行Three.js渲染本身。
 
 ### 13.2 自动规则用例
 

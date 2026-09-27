@@ -86,12 +86,12 @@ export function placeEnemy(game, i, x, z, { hp, officer } = {}) {
 }
 
 /** Scheduler driven by an artificial rAF time sequence (SDD 13.1). inputScriptByStep(stepIndex) -> InputSnapshot. */
-export function driveRenderSchedule(sim, elapsedSequence, inputScriptByStep, { pauseAt = {} } = {}) {
+export function driveRenderSchedule(sim, elapsedSequence, inputScriptByStep, { pauseAt = {}, render = () => {} } = {}) {
   let stepIndex = 0;
   const log = [];
   const loop = createFixedLoop({
     step: () => { sim.step(inputScriptByStep(stepIndex)); stepIndex++; },
-    render: () => {},
+    render,
     sampleInput: () => {},
   });
   elapsedSequence.forEach((e, k) => {

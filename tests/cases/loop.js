@@ -30,23 +30,24 @@ function irregularSeq(steps) {
 
 function runWith(seq) {
   rng.seed(1);
+  vrng.seed(7936);
   const sim = createSimulationForTest({ grunts: 300 });
-  const r = driveRenderSchedule(sim, seq, script);
+  const r = driveRenderSchedule(sim, seq, script, { render: () => vrng.next() });
   const snap = captureGameplayState(sim.game);
+  const visualRngState = vrng.state;
   sim.dispose();
-  return { r, snap };
+  return { r, snap, visualRngState };
 }
 
 export default [
   { id: 'T16', name: 'steady vs irregular rAF → identical rule snapshot at 600 steps', fn() {
     const a = runWith(steadySeq(STEPS));
-    const v0 = vrng.state;
     const b = runWith(irregularSeq(STEPS));
     assertEqual(a.r.steps, STEPS, 'steady steps'); assertEqual(b.r.steps, STEPS, 'irregular steps');
     assert(b.r.log.some((l) => l.steps > 1), 'irregular schedule actually batched steps');
     assertEqual(a.snap, b.snap, 'snapshot');
-    assertEqual(vrng.state, v0, 'sim never touched the visual RNG');
-    return `hero kos ${a.snap.hero.kos}, hp ${a.snap.hero.hp}, rng ${a.snap.rng}`;
+    assert(a.visualRngState !== b.visualRngState, 'different render counts consume different visual RNG draws');
+    return `hero kos ${a.snap.hero.kos}, hp ${a.snap.hero.hp}, sim rng ${a.snap.rng}, visual rng ${a.visualRngState}/${b.visualRngState}`;
   } },
   { id: 'T16', name: 'at most 4 steps per rAF, backlog dropped', fn() {
     let steps = 0;

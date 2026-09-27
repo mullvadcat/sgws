@@ -2,7 +2,7 @@ import { collectCases, parseRequestedIds } from './runner.js';
 
 const MODULES = [
   './cases/input.js', './cases/hero.js', './cases/combat.js', './cases/crowd.js',
-  './cases/musou.js', './cases/loop.js', './cases/runner.js',
+  './cases/musou.js', './cases/loop.js', './cases/runner.js', './cases/architecture.js',
 ];
 const rows = document.getElementById('rows');
 const results = [];
